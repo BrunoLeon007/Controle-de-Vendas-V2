@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utrufas</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 15px;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #5c3a21;
+        }
+
+        .bloco {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #5c3a21;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: .9;
+        }
+
+        .verde {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .vermelho {
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .amarelo {
+            color: #f9a825;
+            font-weight: bold;
+        }
+
+        .produto {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        .item-venda {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .acoes {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-editar {
+            background: #1565c0;
+            width: auto;
+        }
+
+        .btn-apagar {
+            background: #c62828;
+            width: auto;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🍫 Utrufas</h1>
+
+    <div class="bloco">
+        <h2>Resumo de Hoje</h2>
+
+        <p>
+            Valor Recebido:
+            <span id="hoje-pago" class="verde">R$ 0,00</span>
+        </p>
+
+        <p>
+            Valor a Receber:
+            <span id="hoje-pendente" class="vermelho">R$ 0,00</span>
+        </p>
+    </div>
+
+    <div class="bloco">
+        <h2>Resumo do Mês</h2>
+
+        <p>Total de Vendas: <span id="mes-total">R$ 0,00</span></p>
+
+        <p>Total a Receber:
+            <span id="mes-pendente" class="amarelo">R$ 0,00</span>
+        </p>
+
+        <p>🍫 Trufas Vendidas:
+            <strong id="total-trufas">0</strong>
+        </p>
+
+        <p>🍫 Barras Vendidas:
+            <strong id="total-barras">0</strong>
+        </p>
+    </div>
+
+    <div class="bloco">
+
+        <h2 id="titulo-formulario">Nova Venda</h2>
+
+        <form id="formulario">
+
+            <input type="hidden" id="editandoId">
+
+            <label>Nome do Comprador</label> <input type="text" id="comprador" required placeholder="Ex: Maria">
+
+            <div class="produto">
+
+                <h3>🍫 Trufas</h3>
+
+                <label>Quantidade</label> <input type="number" id="qtdTrufa" min="0" value="0">
+
+                <label>Valor Unitário (R$)</label> <input type="number" id="valorTrufa" step="0.01" value="0">
+
+            </div>
+
+            <div class="produto">
+
+                <h3>🍫 Barras</h3>
+
+                <label>Quantidade</label> <input type="number" id="qtdBarra" min="0" value="0">
+
+                <label>Valor Unitário (R$)</label> <input type="number" id="valorBarra" step="0.01" value="0">
+
+            </div>
+
+            <label>Data da Compra</label> <input type="date" id="data" required>
+
+            <label>Status do Pagamento</label> <select id="status">
+
+                <option value="PAGO">Pago</option>
+                <option value="PENDENTE">Não Pago</option>
+            </select>
+
+            <button type="submit">
+                Salvar Venda
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="bloco">
+        <h2>Histórico de Vendas</h2>
+        <div id="lista-vendas"></div>
+    </div>
+
+    <script>
+
+        let lista =
+            JSON.parse(
+                localStorage.getItem('vendas_utrufas')
+            ) || [];
+
+        const hoje = new Date();
+
+        const dia =
+            String(hoje.getDate()).padStart(2, '0');
+
+        const mes =
+            String(hoje.getMonth() + 1).padStart(2, '0');
+
+        const ano =
+            hoje.getFullYear();
+
+        const dataHoje =
+            `${ano}-${mes}-${dia}`;
+
+        document.getElementById('data').value =
+            dataHoje;
+
+        function salvarLocal() {
+            localStorage.setItem(
+                'vendas_utrufas',
+                JSON.stringify(lista)
+            );
+        }
+
+        document
+            .getElementById('formulario')
+            .addEventListener('submit', function (e) {
+
+                e.preventDefault();
+
+                let comprador =
+                    document.getElementById('comprador').value.trim();
+
+                let qtdTrufa =
+                    parseInt(
+                        document.getElementById('qtdTrufa').value
+                    ) || 0;
+
+                let valorTrufa =
+                    parseFloat(
+                        document.getElementById('valorTrufa').value
+                    ) || 0;
+
+                let qtdBarra =
+                    parseInt(
+                        document.getElementById('qtdBarra').value
+                    ) || 0;
+
+                let valorBarra =
+                    parseFloat(
+                        document.getElementById('valorBarra').value
+                    ) || 0;
+
+                if (qtdTrufa === 0 && qtdBarra === 0) {
+                    alert(
+                        'Informe ao menos uma trufa ou barra vendida.'
+                    );
+                    return;
+                }
+
+                if (qtdTrufa > 0 && valorTrufa <= 0) {
+                    alert(
+                        'Informe o valor unitário da trufa.'
+                    );
+                    return;
+                }
+
+                if (qtdBarra > 0 && valorBarra <= 0) {
+                    alert(
+                        'Informe o valor unitário da barra.'
+                    );
+                    return;
+                }
+
+                let total =
+                    (qtdTrufa * valorTrufa) +
+                    (qtdBarra * valorBarra);
+
+                let idEdicao =
+                    document.getElementById('editandoId').value;
+
+                if (idEdicao) {
+
+                    let venda =
+                        lista.find(
+                            v => v.id == idEdicao
+                        );
+
+                    venda.comprador = comprador;
+                    venda.qtdTrufa = qtdTrufa;
+                    venda.valorTrufa = valorTrufa;
+                    venda.qtdBarra = qtdBarra;
+                    venda.valorBarra = valorBarra;
+                    venda.valor = total;
+                    venda.data =
+                        document.getElementById('data').value;
+                    venda.status =
+                        document.getElementById('status').value;
+
+                } else {
+
+                    lista.push({
+                        id: Date.now(),
+                        comprador,
+                        qtdTrufa,
+                        valorTrufa,
+                        qtdBarra,
+                        valorBarra,
+                        valor: total,
+                        data:
+                            document.getElementById('data').value,
+                        status:
+                            document.getElementById('status').value
+                    });
+
+                }
+
+                salvarLocal();
+                limparFormulario();
+                atualizarTela();
+
+            });
+
+        function editarVenda(id) {
+
+            let venda =
+                lista.find(v => v.id === id);
+
+            document.getElementById('editandoId').value =
+                venda.id;
+
+            document.getElementById('comprador').value =
+                venda.comprador;
+
+            document.getElementById('qtdTrufa').value =
+                venda.qtdTrufa;
+
+            document.getElementById('valorTrufa').value =
+                venda.valorTrufa;
+
+            document.getElementById('qtdBarra').value =
+                venda.qtdBarra;
+
+            document.getElementById('valorBarra').value =
+                venda.valorBarra;
+
+            document.getElementById('data').value =
+                venda.data;
+
+            document.getElementById('status').value =
+                venda.status;
+
+            document.getElementById(
+                'titulo-formulario'
+            ).innerText = 'Editar Venda';
+
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function apagarVenda(id) {
+
+            if (confirm('Deseja apagar esta venda?')) {
+
+                lista =
+                    lista.filter(
+                        v => v.id !== id
+                    );
+
+                salvarLocal();
+                atualizarTela();
+
+            }
+
+        }
+
+        function limparFormulario() {
+
+            document.getElementById('formulario').reset();
+
+            document.getElementById('editandoId').value = '';
+
+            document.getElementById('qtdTrufa').value = 0;
+            document.getElementById('valorTrufa').value = 0;
+
+            document.getElementById('qtdBarra').value = 0;
+            document.getElementById('valorBarra').value = 0;
+
+            document.getElementById('data').value =
+                dataHoje;
+
+            document.getElementById(
+                'titulo-formulario'
+            ).innerText = 'Nova Venda';
+
+        }
+
+        function atualizarTela() {
+
+            let html = '';
+
+            let hojePago = 0;
+            let hojePendente = 0;
+
+            let mesTotal = 0;
+            let mesPendente = 0;
+
+            let totalTrufas = 0;
+            let totalBarras = 0;
+
+            lista.forEach(venda => {
+
+                let partes =
+                    venda.data.split('-');
+
+                if (venda.data === dataHoje) {
+
+                    if (venda.status === 'PAGO') {
+                        hojePago += venda.valor;
+                    } else {
+                        hojePendente += venda.valor;
+                    }
+
+                }
+
+                if (
+                    partes[0] == ano &&
+                    partes[1] == mes
+                ) {
+
+                    mesTotal += venda.valor;
+
+                    totalTrufas += venda.qtdTrufa;
+                    totalBarras += venda.qtdBarra;
+
+                    if (venda.status === 'PENDENTE') {
+                        mesPendente += venda.valor;
+                    }
+
+                }
+
+                html += `
+<div class="item-venda">
+
+<p>
+<strong>Cliente:</strong>
+${venda.comprador}
+</p>
+
+<p>
+🍫 Trufas:
+${venda.qtdTrufa}
+x R$ ${venda.valorTrufa.toFixed(2)}
+</p>
+
+<p>
+🍫 Barras:
+${venda.qtdBarra}
+x R$ ${venda.valorBarra.toFixed(2)}
+</p>
+
+<p>
+<strong>Total:</strong>
+R$ ${venda.valor.toFixed(2)}
+</p>
+
+<p>
+Data:
+${partes[2]}/${partes[1]}/${partes[0]}
+</p>
+
+<p>
+Status:
+<span class="${venda.status === 'PAGO'
+                        ? 'verde'
+                        : 'vermelho'
+                    }">
+${venda.status}
+</span>
+</p>
+
+<div class="acoes">
+
+<button
+class="btn-editar"
+onclick="editarVenda(${venda.id})">
+Editar
+</button>
+
+<button
+class="btn-apagar"
+onclick="apagarVenda(${venda.id})">
+Apagar
+</button>
+
+</div>
+
+</div>
+`;
+            });
+
+            document.getElementById('hoje-pago').innerText =
+                'R$ ' + hojePago.toFixed(2);
+
+            document.getElementById('hoje-pendente').innerText =
+                'R$ ' + hojePendente.toFixed(2);
+
+            document.getElementById('mes-total').innerText =
+                'R$ ' + mesTotal.toFixed(2);
+
+            document.getElementById('mes-pendente').innerText =
+                'R$ ' + mesPendente.toFixed(2);
+
+            document.getElementById('total-trufas').innerText =
+                totalTrufas;
+
+            document.getElementById('total-barras').innerText =
+                totalBarras;
+
+            document.getElementById('lista-vendas').innerHTML =
+                html || '<p>Nenhuma venda cadastrada.</p>';
+
+        }
+
+        atualizarTela();
+
+    </script>
+
+</body>
+
+</html>
+
